@@ -1,3 +1,4 @@
+from typing import Optional, Union
 from llama_cpp import Llama, LlamaTokenizer
 from util_helper.text_preprocessor import remove_list_formatting, remove_non_letters
 
@@ -15,20 +16,19 @@ class LlamaAI:
         _llama_kwrgs (dict): Additional kwargs to pass when loading Llama model.
     """
 
-    def __init__(self, model_gguf_path:str, max_tokens:int, max_input_tokens:int, **llama_kwrgs) -> None:
+    def __init__(self, model_gguf_path:str, max_tokens:int, **llama_kwrgs) -> None:
         """
         Initialize the LlamaAI instance.
 
         Args:
             model_gguf_path (str): Path to .gguf model file.
-            max_tokens (int): Max tokens to generate.
-            max_input_tokens (int): Max tokens allowed in input.
-            llama_kwrgs: Additional kwargs for Llama model.
+            max_tokens (int): Max tokens to be processed 
+            llama_kwrgs: Additional kwargs for Llama model compatible with llama-cpp-python BE
 
         """
         self.model_path = model_gguf_path
         self.max_tokens = max_tokens
-        self.max_input_tokens = max_input_tokens
+        self._max_input_tokens = None
         self.llm = None
         self.tokenizer = None
         self._loaded = False
@@ -47,7 +47,7 @@ class LlamaAI:
         self.tokenizer = LlamaTokenizer(self.llm)
         self._loaded = True
 
-    def try_fixing_format(self, text: str, only_letters: bool = False, rem_list_formatting: bool = False) -> str:
+    def _try_fixing_format(self, text: str, only_letters: bool = False, rem_list_formatting: bool = False) -> str:
         """
         Attempt to fix formatting issues in the input text.
 
@@ -94,7 +94,7 @@ class LlamaAI:
             except:
                 raise Exception("Model not loaded! Please provide model settings when creating the class or use load_model method after creation.")
         
-    def _adjust_max_tokens(self, new_max_tokens: int) -> None:
+    def _set_total_token_limit(self, new_max_tokens: int) -> None:
         """
         Adjust the max_tokens attribute.
 
@@ -106,7 +106,7 @@ class LlamaAI:
         self.max_tokens = new_max_tokens
         self._loaded = False
    
-    def _adjust_max_input_tokens(self, new_max_input_tokens: int) -> None:
+    def _set_input_token_limit(self, new_max_input_tokens: int) -> None:
         """
         Adjust the max_input_tokens attribute.
 
@@ -117,9 +117,10 @@ class LlamaAI:
         """
         if new_max_input_tokens < self.max_tokens:
             raise Exception("The new maximum input tokens must be greater than the current maximum tokens.")
-        self.max_input_tokens = new_max_input_tokens
+        if self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
+            self._max_input_tokens = new_max_input_tokens
 
-    def adjust_tokens(self, new_max_tokens: int, new_max_input_tokens: int) -> None:
+    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]) -> None:
         """
         Adjust both the max tokens and max input tokens.
 
@@ -130,8 +131,8 @@ class LlamaAI:
         Calls _adjust methods to update attributes.
         Reloads the model after adjusting.
         """
-        self._adjust_max_tokens(new_max_tokens)
-        self._adjust_max_input_tokens(new_max_input_tokens)
+        self._set_total_token_limit(new_max_tokens)
+        self._set_input_token_limit(max_input_tokens_limit)
         self.load()
 
     def tokenize(self, text: str) -> list:
@@ -171,7 +172,7 @@ class LlamaAI:
         """
         return len(self.tokenize(text))    
 
-    def is_within_input_limit(self, text: str) -> bool:
+    def is_prompt_within_limit(self, text: str) -> bool:
         """
         Check if the text is within the max input tokens limit.
 
@@ -181,18 +182,31 @@ class LlamaAI:
         Returns: 
             bool: True if under input token limit, False otherwise.
         """
-        return self.count_tokens(text) <= self.max_input_tokens
+        tcc = self.count_tokens(text)
+        print(f"Input length: {tcc} tokens")
+        if self._max_input_tokens is not None:
+            r = self.count_tokens(text) <= self.max_tokens
+            print(f"Max input length set to: {self._max_input_tokens} tokens")
+        else:
+            r = self.count_tokens(text) <= self.max_tokens
+            print(f"Max input length not set, using max tokens: {self.max_tokens} tokens")
+        return r
+
+    def clear_input_tokens_limit(self) -> None:
+        """
+        Clear the max input tokens limit.
+        """
+        self._max_input_tokens = None     
     
-    def infer(self,text:str, only_string: bool = False, max_tokens_if_needed=-1, stop_at_str=None, include_stop_str=True) -> str:
+    def infer(self, text:str, only_string: bool = True, stop_at_str=None, include_stop_str=True) -> Union[str, dict]:
         """
         Generate inference text for the input prompt.
 
         Args:
             text (str): The prompt text.
             only_string (bool): Whether to return just text or OpenAI object. 
-            max_tokens_if_needed (int): Tokens to try if text too long.
-            stop_at_str (str): String to stop generation at.
-            include_stop_str (bool): Whether to include stop string.
+            stop_at_str (str): The string to stop at.
+            include_stop_str (bool): Whether to include the stop string in the output.
 
         Returns:
             str/list: The generated text or OpenAI inference object.
@@ -202,34 +216,16 @@ class LlamaAI:
         """
         text = str(text)
         self._check_loaded()
-        adjusted = False
-        if not self.is_within_input_limit(text):
-            if not max_tokens_if_needed or max_tokens_if_needed < 0:
-                raise Exception("Text is too long!")
-            else:
-                print("Text is too long. Adjusting model trying to fit it...")
-                current_max_tokens = self.max_tokens
-                current_max_input_tokens = self.max_input_tokens
-                input_to_total_ratio = current_max_input_tokens / current_max_tokens
-
-                desired_prompt_len = self.count_tokens(text)
-                if not any([max_tokens_if_needed > 0, desired_prompt_len - current_max_input_tokens <= max_tokens_if_needed]):
-                    raise Exception("Text is too long and the model cannot be adjusted to fit it!")
-                desired_input_len = int(desired_prompt_len * input_to_total_ratio)
-                print(f"Adjusting model to {desired_input_len} input tokens and {desired_prompt_len} tokens.")
-                self.adjust_tokens(desired_input_len, desired_prompt_len)
-                adjusted = True
-                
-        stop_at = None if any([stop_at_str is None, stop_at_str == ""]) else stop_at_str
-        output = self.llm(text, max_tokens=self.max_tokens, stop=stop_at)
-        if only_string:
-            output = self._text_from_inference_obj(output)
-            if include_stop_str:
-                output += stop_at_str if stop_at_str is not None else ""
-        if adjusted:
-            print(f"Adjusting model back to {current_max_tokens} tokens and {current_max_input_tokens} input tokens.")
-            self.adjust_tokens(current_max_tokens, current_max_input_tokens)
-        return output
+        if not self.is_prompt_within_limit(text):
+            raise Exception("Text is too long!")
+        else:            
+            stop_at = None if any([stop_at_str is None, stop_at_str == ""]) else stop_at_str
+            output:dict = self.llm(text, max_tokens=self.max_tokens, stop=stop_at)
+            if only_string:
+                output = self._text_from_inference_obj(output)
+                if include_stop_str:
+                    output += stop_at_str if stop_at_str is not None else ""
+            return output
     
     def _text_from_inference_obj(self, answer_dict: dict) -> str:
         if 'choices' in answer_dict and 'text' in answer_dict['choices'][0]:
