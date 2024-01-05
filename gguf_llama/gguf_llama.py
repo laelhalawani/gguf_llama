@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from llama_cpp import Llama, LlamaTokenizer
 from util_helper.text_preprocessor import remove_list_formatting, remove_non_letters
 
@@ -16,7 +16,7 @@ class LlamaAI:
         _llama_kwrgs (dict): Additional kwargs to pass when loading Llama model.
     """
 
-    def __init__(self, model_gguf_path:str, max_tokens:int, **llama_kwrgs) -> None:
+    def __init__(self, model_gguf_path:str, max_tokens:int, **llama_kwrgs:Any) -> None:
         """
         Initialize the LlamaAI instance.
 
@@ -32,8 +32,9 @@ class LlamaAI:
         self.llm = None
         self.tokenizer = None
         self._loaded = False
-        self.load()
         self._llama_kwrgs = llama_kwrgs
+        self.load()
+
         
     def load(self) -> None:
         """
