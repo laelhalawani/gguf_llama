@@ -107,7 +107,7 @@ class LlamaAI:
         self.max_tokens = new_max_tokens
         self._loaded = False
    
-    def _set_input_token_limit(self, new_max_input_tokens: int) -> None:
+    def _set_input_token_limit(self, new_max_input_tokens: int=None) -> None:
         """
         Adjust the max_input_tokens attribute.
 
@@ -116,12 +116,15 @@ class LlamaAI:
         
         Raises an exception if the new value is less than max_tokens.
         """
-        if new_max_input_tokens < self.max_tokens:
+        if new_max_input_tokens is None or (new_max_input_tokens is not None and new_max_input_tokens <= 0):
+            self._max_input_tokens = None
+            print("Max input tokens limit cleared.")
+        elif new_max_input_tokens < self.max_tokens:
             raise Exception("The new maximum input tokens must be greater than the current maximum tokens.")
-        if self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
+        elif self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
             self._max_input_tokens = new_max_input_tokens
 
-    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]) -> None:
+    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]=None) -> None:
         """
         Adjust both the max tokens and max input tokens.
 
@@ -197,7 +200,7 @@ class LlamaAI:
         """
         Clear the max input tokens limit.
         """
-        self._max_input_tokens = None     
+        self._set_input_token_limit(None)
     
     def infer(self, text:str, only_string: bool = True, stop_at_str=None, include_stop_str=True) -> Union[str, dict]:
         """

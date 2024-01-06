@@ -135,7 +135,7 @@ class LlamaAI:
         self.max_tokens = new_max_tokens
         self._loaded = False
    
-    def _set_input_token_limit(self, new_max_input_tokens: int) -&gt; None:
+    def _set_input_token_limit(self, new_max_input_tokens: int=None) -&gt; None:
         &#34;&#34;&#34;
         Adjust the max_input_tokens attribute.
 
@@ -144,12 +144,15 @@ class LlamaAI:
         
         Raises an exception if the new value is less than max_tokens.
         &#34;&#34;&#34;
-        if new_max_input_tokens &lt; self.max_tokens:
+        if new_max_input_tokens is None or (new_max_input_tokens is not None and new_max_input_tokens &lt;= 0):
+            self._max_input_tokens = None
+            print(&#34;Max input tokens limit cleared.&#34;)
+        elif new_max_input_tokens &lt; self.max_tokens:
             raise Exception(&#34;The new maximum input tokens must be greater than the current maximum tokens.&#34;)
-        if self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
+        elif self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
             self._max_input_tokens = new_max_input_tokens
 
-    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]) -&gt; None:
+    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]=None) -&gt; None:
         &#34;&#34;&#34;
         Adjust both the max tokens and max input tokens.
 
@@ -225,7 +228,7 @@ class LlamaAI:
         &#34;&#34;&#34;
         Clear the max input tokens limit.
         &#34;&#34;&#34;
-        self._max_input_tokens = None     
+        self._set_input_token_limit(None)
     
     def infer(self, text:str, only_string: bool = True, stop_at_str=None, include_stop_str=True) -&gt; Union[str, dict]:
         &#34;&#34;&#34;
@@ -413,7 +416,7 @@ class LlamaAI:
         self.max_tokens = new_max_tokens
         self._loaded = False
    
-    def _set_input_token_limit(self, new_max_input_tokens: int) -&gt; None:
+    def _set_input_token_limit(self, new_max_input_tokens: int=None) -&gt; None:
         &#34;&#34;&#34;
         Adjust the max_input_tokens attribute.
 
@@ -422,12 +425,15 @@ class LlamaAI:
         
         Raises an exception if the new value is less than max_tokens.
         &#34;&#34;&#34;
-        if new_max_input_tokens &lt; self.max_tokens:
+        if new_max_input_tokens is None or (new_max_input_tokens is not None and new_max_input_tokens &lt;= 0):
+            self._max_input_tokens = None
+            print(&#34;Max input tokens limit cleared.&#34;)
+        elif new_max_input_tokens &lt; self.max_tokens:
             raise Exception(&#34;The new maximum input tokens must be greater than the current maximum tokens.&#34;)
-        if self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
+        elif self._max_input_tokens is None or new_max_input_tokens != self._max_input_tokens:
             self._max_input_tokens = new_max_input_tokens
 
-    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]) -&gt; None:
+    def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]=None) -&gt; None:
         &#34;&#34;&#34;
         Adjust both the max tokens and max input tokens.
 
@@ -503,7 +509,7 @@ class LlamaAI:
         &#34;&#34;&#34;
         Clear the max input tokens limit.
         &#34;&#34;&#34;
-        self._max_input_tokens = None     
+        self._set_input_token_limit(None)
     
     def infer(self, text:str, only_string: bool = True, stop_at_str=None, include_stop_str=True) -&gt; Union[str, dict]:
         &#34;&#34;&#34;
@@ -554,7 +560,7 @@ class LlamaAI:
     &#34;&#34;&#34;
     Clear the max input tokens limit.
     &#34;&#34;&#34;
-    self._max_input_tokens = None     </code></pre>
+    self._set_input_token_limit(None)</code></pre>
 </details>
 </dd>
 <dt id="gguf_llama.gguf_llama.LlamaAI.count_tokens"><code class="name flex">
@@ -705,7 +711,7 @@ Sets _loaded to True once complete.</p></div>
 </details>
 </dd>
 <dt id="gguf_llama.gguf_llama.LlamaAI.set_max_tokens"><code class="name flex">
-<span>def <span class="ident">set_max_tokens</span></span>(<span>self, new_max_tokens: int, max_input_tokens_limit: Optional[int]) ‑> None</span>
+<span>def <span class="ident">set_max_tokens</span></span>(<span>self, new_max_tokens: int, max_input_tokens_limit: Optional[int] = None) ‑> None</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Adjust both the max tokens and max input tokens.</p>
@@ -722,7 +728,7 @@ Reloads the model after adjusting.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]) -&gt; None:
+<pre><code class="python">def set_max_tokens(self, new_max_tokens: int, max_input_tokens_limit:Optional[int]=None) -&gt; None:
     &#34;&#34;&#34;
     Adjust both the max tokens and max input tokens.
 
