@@ -44,7 +44,7 @@ class LlamaAI:
         Sets _loaded to True once complete.
         """
         print(f"Loading model from {self.model_path}...")
-        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, kwargs=self._llama_kwrgs)
+        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, **self._llama_kwrgs)
         self.tokenizer = LlamaTokenizer(self.llm)
         self._loaded = True
 
