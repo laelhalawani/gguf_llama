@@ -22,12 +22,6 @@ Generate text by calling infer():
 text = ai.infer("Once upon a time")  
 print(text)"
 ```
-Adjust model tokens to fit longer prompts:
-```python
-"big_prompt = "..." # prompt longer than max input tokens   
-
-text = ai.infer(big_prompt, max_tokens_if_needed=2000)"
-```
 ## Installation
 
 ```python
