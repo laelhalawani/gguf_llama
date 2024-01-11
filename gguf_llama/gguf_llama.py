@@ -16,7 +16,7 @@ class LlamaAI:
         _llama_kwrgs (dict): Additional kwargs to pass when loading Llama model.
     """
 
-    def __init__(self, model_gguf_path:str, max_tokens:int, **llama_kwrgs:Any) -> None:
+    def __init__(self, model_gguf_path:str, max_tokens:int, **llama_kwargs:Any) -> None:
         """
         Initialize the LlamaAI instance.
 
@@ -32,7 +32,8 @@ class LlamaAI:
         self.llm = None
         self.tokenizer = None
         self._loaded = False
-        self._llama_kwrgs = llama_kwrgs
+        self._llama_kwrgs = llama_kwargs
+        self._embeddings_mode = True
         self.load()
 
         
@@ -44,9 +45,27 @@ class LlamaAI:
         Sets _loaded to True once complete.
         """
         print(f"Loading model from {self.model_path}...")
-        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, kwargs=self._llama_kwrgs)
+        llama_kwargs = {"embedding": self._embeddings_mode}
+        for k, v in self._llama_kwrgs.items():
+            llama_kwargs[k] = v
+        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, **llama_kwargs)
         self.tokenizer = LlamaTokenizer(self.llm)
         self._loaded = True
+
+    def create_embeddings(self, text:str) -> list[float]:
+        """
+        Create embeddings for the input text.
+
+        Args:
+            text (str): The text to create embeddings for.
+        """
+        self._check_loaded()
+        if not self._embeddings_mode:
+            print("Switching to embeddings mode...")
+            self._embeddings_mode = True
+            self.load()
+        embs = self.llm.embed(text)
+        return embs
 
     def _try_fixing_format(self, text: str, only_letters: bool = False, rem_list_formatting: bool = False) -> str:
         """
