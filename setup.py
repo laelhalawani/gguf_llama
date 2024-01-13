@@ -4,10 +4,10 @@ with open("./README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name="gguf_llama",
-    version="0.0.16",
+    version="0.0.17",
     packages=find_packages(),
     install_requires=[
-        'util_helper>=0.0.3',
+        'util_helper==0.0.4',
         'llama-cpp-python>=0.2.26',
     ],
     #package_data={'glai': ['back_end/model_db/gguf_models/*.json']},
