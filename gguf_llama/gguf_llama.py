@@ -27,13 +27,23 @@ class LlamaAI:
 
         """
         self.model_path = model_gguf_path
-        self.max_tokens = max_tokens
+        self.max_tokens = max_tokens 
         self._max_input_tokens = None
         self.llm = None
         self.tokenizer = None
-        self._loaded = False
+        self._gpu_layers = 0 
+        if "gpu_layers" in llama_kwargs:
+            self._gpu_layers = llama_kwargs["gpu_layers"]
+            del llama_kwargs["gpu_layers"]
         self._llama_kwrgs = llama_kwargs
         self._embeddings_mode = True
+        if "embeddings" in llama_kwargs:
+            self._embeddings_mode = llama_kwargs["embeddings"]
+            del llama_kwargs["embeddings"]
+        self._offload_kqv = False
+        if "offload_kqv" in llama_kwargs:
+            self._offload_kqv = llama_kwargs["offload_kqv"]
+            del llama_kwargs["offload_kqv"]
         self.load()
 
         
@@ -45,10 +55,10 @@ class LlamaAI:
         Sets _loaded to True once complete.
         """
         print(f"Loading model from {self.model_path}...")
-        llama_kwargs = {"embedding": self._embeddings_mode}
-        for k, v in self._llama_kwrgs.items():
-            llama_kwargs[k] = v
-        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, **llama_kwargs)
+        llama_kwargs = self._llama_kwrgs
+        print(f"Loading model with following args:\n path: {self.model_path}\n max_tokens: {self.max_tokens}\n gpu_layers: {self._gpu_layers}\n offload_kqv: {self._offload_kqv}\n embeddings: {self._embeddings_mode}\n llama_kwargs: {llama_kwargs}")
+        self.llm = Llama(model_path=self.model_path, verbose=False, n_ctx=self.max_tokens, n_gpu_layers=self._gpu_layers, offload_kqv=self._offload_kqv, embedding=self._embeddings_mode, **llama_kwargs)
+        
         self.tokenizer = LlamaTokenizer(self.llm)
         self._loaded = True
 

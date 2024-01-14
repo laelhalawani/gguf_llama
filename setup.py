@@ -4,7 +4,7 @@ with open("./README.md", "r") as fh:
     long_description = fh.read()
 setup(
     name="gguf_llama",
-    version="0.0.18",
+    version="0.0.19",
     packages=find_packages(),
     install_requires=[
         'util_helper==0.0.5',
